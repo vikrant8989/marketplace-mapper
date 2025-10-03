@@ -1,0 +1,49 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Marketplace {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  attributes Json      // Store marketplace template attributes as JSON
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  mappings   Mapping[]
+  
+  @@map("marketplaces")
+}
+
+model SellerFile {
+  id         String    @id @default(cuid())
+  filename   String    @unique  // Unique to enable UPSERT
+  columns    Json      // Store discovered columns as JSON array
+  uploadedAt DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  mappings   Mapping[]
+  
+  @@map("seller_files")
+}
+
+model Mapping {
+  id              String       @id @default(cuid())
+  marketplaceId   String
+  sellerFileId    String
+  columnMapping   Json         // Store mapping as JSON: {sellerColumn: marketplaceAttribute}
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  marketplace     Marketplace  @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  sellerFile      SellerFile   @relation(fields: [sellerFileId], references: [id], onDelete: Cascade)
+  
+  @@unique([marketplaceId, sellerFileId])  // One mapping per marketplace-file pair
+  @@map("mappings")
+}
