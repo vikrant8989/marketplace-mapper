@@ -20,6 +20,7 @@ import FileUploader from "./marketplace-file-uploader"
 import { marketplaceAPI } from "@/lib/api/client"
 import { MarketplaceAttribute } from "@/lib/types"
 import { useRouter } from "next/navigation"
+import { useToast } from "../toast-1"
 
 interface UploadedFileData {
   file: File
@@ -43,6 +44,7 @@ export default function UploadMarketplaceFile() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [newMarketplaceName, setNewMarketplaceName] = useState("")
   const [newMarketplaceDesc, setNewMarketplaceDesc] = useState("")
+  const { showToast } = useToast();
   const router = useRouter()
 
   useEffect(() => {
@@ -55,8 +57,7 @@ export default function UploadMarketplaceFile() {
       const response = await marketplaceAPI.getAll()
       setMarketplaces(response)
     } catch (error) {
-      console.error("Failed to fetch marketplaces:", error)
-      alert("Failed to load marketplaces")
+      showToast(`Failed to load marketplaces`, "error");
     } finally {
       setIsLoadingMarketplaces(false)
     }
@@ -68,7 +69,7 @@ export default function UploadMarketplaceFile() {
 
   const handleAddNewMarketplace = () => {
     if (!newMarketplaceName.trim()) {
-      alert("Please enter a marketplace name")
+      showToast(`Please enter a marketplace name`, "warning");
       return
     }
 
@@ -102,9 +103,10 @@ export default function UploadMarketplaceFile() {
       const errorMessage = error instanceof Error ? error.message : "Failed to save marketplace template"
 
       if (errorMessage.includes("already exists")) {
-        alert(`${selectedMarketplace} template already exists. Please use a different name or delete the existing one.`)
+        showToast(`${selectedMarketplace} template already exists. Please use a different name or delete the existing one.`, "error");
       } else {
-        alert(errorMessage)
+        showToast(`${errorMessage}`, "error");
+
       }
       setUploadedFileData(null)
     } finally {

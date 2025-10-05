@@ -10,7 +10,6 @@ import { useMappingContext } from "./mapping-context"
 import { useToast } from "../toast-1"
 import { marketplaceAPI, sellerFileAPI, mappingAPI, ApiError } from "@/lib/api/client"
 import { ERROR_MESSAGES } from "@/lib/constants"
-import type { SellerFileData} from "@/lib/types"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,18 +30,14 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
   const { showToast } = useToast()
   const {
     uploadedFileData,
-    setUploadedFileData,
     selectedMarketplace,
-    setSelectedMarketplace,
     columnMapping,
     setColumnMapping,
-    marketplaces,
     setMarketplaces,
     currentStep,
     setCurrentStep,
     setStepTitles,
     sellerFileId,
-    setSellerFileId,
   } = useMappingContext()
 
   const [templateToSeller, setTemplateToSeller] = useState<Record<string, string>>({})

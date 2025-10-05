@@ -77,9 +77,6 @@ export default function MapExistingFile({
     }
   };
 
-  useEffect(() => {
-    setTemplateToSeller({});
-  }, [selectedTemplate]);
 
   const performSave = async () => {
     setIsSaving(true);
