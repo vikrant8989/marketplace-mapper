@@ -265,7 +265,7 @@ export default function UploadMarketplaceFile() {
                 </div>
                 <div className="flex gap-3 mt-4">
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                    className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
                     onClick={() => {
                       router.push("/seller")
                     }}

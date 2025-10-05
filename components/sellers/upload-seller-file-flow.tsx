@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useEffect, useState } from "react"
-import { Check, Upload, ArrowRight, FileText, ShoppingCart, GitBranch, Eye } from "lucide-react"
-import SellerFileUploader from "./seller-file-uploader"
+import StepSelectMarketplace from "./step-select-marketplace"
+import StepUploadFile from "./step-upload-file"
+import StepColumnMapping from "./step-column-mapping"
+import StepReview from "./step-review"
+import SellerStepper from "./seller-stepper"
 import { useMappingContext } from "./mapping-context"
 import { useToast } from "../toast-1"
 import { marketplaceAPI, sellerFileAPI, mappingAPI, ApiError } from "@/lib/api/client"
 import { ERROR_MESSAGES } from "@/lib/constants"
-import type { SellerFileData, Marketplace, MarketplaceAttribute, SellerColumn } from "@/lib/types"
+import type { SellerFileData} from "@/lib/types"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,14 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import ColumnMappingPanel from "./column-mapping"
 
 interface UploadSellerFileFlowProps {
   onMappingSaved: () => void
 }
 
 export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFileFlowProps) {
-  const [currentStep, setCurrentStep] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const { showToast } = useToast()
   const {
@@ -37,13 +38,21 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
     setColumnMapping,
     marketplaces,
     setMarketplaces,
+    currentStep,
+    setCurrentStep,
+    setStepTitles,
+    sellerFileId,
+    setSellerFileId,
   } = useMappingContext()
 
   const [templateToSeller, setTemplateToSeller] = useState<Record<string, string>>({})
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [incompleteOptionalCount, setIncompleteOptionalCount] = useState(0)
-  const [sellerFileId, setSellerFileId] = useState<string>("")
-  // Fetch marketplaces on component mount
+
+  useEffect(() => {
+    setStepTitles(["Select Marketplace", "Upload File", "Create Mapping", "Review & Save"])
+  }, [setStepTitles])
+
   const fetchMarketplaces = async () => {
     try {
       const data = await marketplaceAPI.getAll()
@@ -60,40 +69,16 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
   }, [])
 
   useEffect(() => {
-    // reset auto-mapping when file changes
     setTemplateToSeller({})
   }, [uploadedFileData?.file?.name])
 
-  const handleFileUpload = async (data: SellerFileData) => {
-    setUploadedFileData(data)
-    try {
-     const response : any = await sellerFileAPI.create({
-        filename: data.file.name,
-        columns: data.columns,
-        rowCount: data.rowCount,
-      })
-      console.log("Created seller file:", response)
-      if (response?.id) {
-        setSellerFileId(response.id)
-      } 
-    } catch (error) {
-      const message = error instanceof ApiError ? error.message : ERROR_MESSAGES.SAVE_ERROR
-      showToast(message, "error", "bottom-right")
-    }
-  }
 
-  const handleMarketplaceSelect = (marketplace: Marketplace) => {
-    setSelectedMarketplace(marketplace)
-    setTemplateToSeller({})
-    setColumnMapping({}) // keep context clean
-  }
 
   const saveMappingToDatabase = async () => {
     if (!uploadedFileData || !selectedMarketplace) return
 
     setIsSaving(true)
     try {
-      // Optional: small delay for UX consistency
       await new Promise((resolve) => setTimeout(resolve, 500))
 
       await mappingAPI.create({
@@ -114,7 +99,6 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
 
   const handleFinalSave = async () => {
     if (!selectedMarketplace) return
-    // Compute required vs optional completeness using templateToSeller
     const requiredUnmapped = selectedMarketplace.attributes.filter((a) => a.required && !templateToSeller[a.name]) || []
     if (requiredUnmapped.length > 0) {
       showToast(
@@ -140,187 +124,13 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
     if (currentStep === 3) {
       await handleFinalSave()
     } else {
-      setCurrentStep((prev) => prev + 1)
+      setCurrentStep(currentStep+1);
     }
   }
 
   const handlePrevious = () => {
-    setCurrentStep((prev) => Math.max(0, prev - 1))
+    setCurrentStep(currentStep-1);
   }
-
-  const steps = [
-    {
-      title: "Select Marketplace",
-      icon: ShoppingCart,
-      content: (
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Choose Your Marketplace</h3>
-            <p className="text-gray-600 dark:text-gray-400">Select where you want to list your products</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {marketplaces.length === 0 ? (
-              <div className="col-span-2 text-center p-8 text-gray-500 dark:text-gray-400">
-                No marketplaces available. Please upload marketplace templates first.
-              </div>
-            ) : (
-              marketplaces.map((marketplace) => (
-                <button
-                  key={marketplace.id}
-                  onClick={() => handleMarketplaceSelect(marketplace)}
-                  className={`p-6 border-2 rounded-lg transition-all text-left ${
-                    selectedMarketplace?.id === marketplace.id
-                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-md"
-                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-bold text-lg text-gray-900 dark:text-gray-100">{marketplace.name}</div>
-                    {selectedMarketplace?.id === marketplace.id && (
-                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{marketplace.attributes.length} attributes</p>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Upload File",
-      icon: Upload,
-      content: <SellerFileUploader onFileUpload={handleFileUpload} />,
-    },
-    {
-      title: "Create Mapping",
-      icon: GitBranch,
-      content: (
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Map Your Columns</h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Connect your CSV columns to {selectedMarketplace?.name || "marketplace"} attributes
-            </p>
-          </div>
-
-          {uploadedFileData && selectedMarketplace && (
-            <div className="space-y-4">
-              <ColumnMappingPanel
-                templateAttributes={selectedMarketplace.attributes as MarketplaceAttribute[]}
-                sellerColumns={(uploadedFileData.columns || []) as SellerColumn[]}
-                value={templateToSeller}
-                onChange={(next) => {
-                  setTemplateToSeller(next)
-                  const inverted: Record<string, string> = {}
-                  Object.entries(next).forEach(([templateName, sellerName]) => {
-                    if (sellerName) inverted[sellerName] = templateName
-                  })
-                  setColumnMapping(inverted)
-                }}
-                autoMap
-              />
-
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>Tip:</strong> Make sure to map all required (*) attributes before proceeding.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Review & Save",
-      icon: Eye,
-      content: (
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Review Your Configuration</h3>
-            <p className="text-gray-600 dark:text-gray-400">Verify all details before saving</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Uploaded File</div>
-                  <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                    {uploadedFileData?.file.name || "No file"}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {uploadedFileData?.rowCount || 0} products • {uploadedFileData?.columns.length || 0} columns
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Target Marketplace</div>
-                  <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                    {selectedMarketplace?.name || "None selected"}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {selectedMarketplace?.attributes.length || 0} total attributes
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <GitBranch className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Column Mappings</div>
-                  <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                    {Object.keys(columnMapping).filter((key) => columnMapping[key]).length} columns mapped
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {selectedMarketplace?.attributes.filter((attr) => attr.required).length || 0} required fields
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Show mapping details */}
-            {Object.keys(columnMapping).filter((key) => columnMapping[key]).length > 0 && (
-              <div className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-3">Mapping Details</h4>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {Object.entries(columnMapping)
-                    .filter(([_, value]) => value)
-                    .map(([sellerCol, marketplaceAttr]) => (
-                      <div
-                        key={sellerCol}
-                        className="flex items-center gap-2 text-sm p-2 bg-gray-50 dark:bg-gray-900 rounded"
-                      >
-                        <span className="font-mono text-gray-700 dark:text-gray-300">{sellerCol}</span>
-                        <ArrowRight className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{marketplaceAttr}</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
-  ]
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 w-full min-h-screen px-4 py-10">
@@ -332,55 +142,7 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
       </div>
 
       <div className="w-full max-w-7xl mx-auto">
-        {/* Progress Steps */}
-        <div className="flex justify-between items-start mb-12">
-          {steps.map((step, index) => {
-            const Icon = step.icon
-            const isComplete = index < currentStep
-            const isCurrent = index === currentStep
-            const isIncomplete = index > currentStep
-
-            return (
-              <div key={index} className="relative flex flex-1 items-center">
-                <div className="flex flex-col items-center gap-3 text-center flex-1">
-                  <div
-                    className={`flex justify-center items-center shrink-0 rounded-full font-semibold w-12 h-12 text-sm border-2 transition-all ${
-                      isComplete
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : isCurrent
-                          ? "bg-blue-600 text-white border-blue-600 shadow-lg"
-                          : "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-700"
-                    }`}
-                  >
-                    {isComplete ? (
-                      <Check className="w-5 h-5" />
-                    ) : isCurrent ? (
-                      <span>{index + 1}</span>
-                    ) : (
-                      <Icon className="w-5 h-5" />
-                    )}
-                  </div>
-                  <span
-                    className={`text-sm font-semibold ${
-                      isIncomplete ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"
-                    }`}
-                  >
-                    {step.title}
-                  </span>
-                </div>
-
-                {index < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-0.5 mx-4 transition-colors ${
-                      isComplete ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-700"
-                    }`}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-
+        <SellerStepper />
         {/* Content Area */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-6">
           {isSaving ? (
@@ -394,7 +156,29 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
               </div>
             </div>
           ) : (
-            steps[currentStep].content
+            <>
+              {currentStep === 0 && <StepSelectMarketplace/>}
+
+              {currentStep === 1 && <StepUploadFile/>}
+
+              {currentStep === 2 && (
+                <div className="max-w-5xl mx-auto">
+                  <StepColumnMapping
+                    value={templateToSeller}
+                    onChange={(next) => {
+                      setTemplateToSeller(next)
+                      const inverted: Record<string, string> = {}
+                      Object.entries(next).forEach(([templateName, sellerName]) => {
+                        if (sellerName) inverted[sellerName] = templateName
+                      })
+                      setColumnMapping(inverted)
+                    }}
+                  />
+                </div>
+              )}
+
+              {currentStep === 3 && <StepReview />}
+            </>
           )}
         </div>
 
@@ -433,7 +217,9 @@ export default function UploadSellerFileFlow({ onMappingSaved }: UploadSellerFil
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer" disabled={isSaving}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={isSaving}
               onClick={async () => {

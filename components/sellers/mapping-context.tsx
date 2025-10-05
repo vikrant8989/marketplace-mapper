@@ -14,6 +14,12 @@ const MappingContext = createContext<
       setColumnMapping: (mapping: Record<string, string>) => void
       marketplaces: Marketplace[]
       setMarketplaces: (marketplaces: Marketplace[]) => void
+      currentStep: number
+      setCurrentStep: (n: number) => void
+      stepTitles: string[]
+      setStepTitles: (titles: string[]) => void
+      sellerFileId: string
+      setSellerFileId: (id: string) => void
       resetMapping: () => void
     }
   | undefined
@@ -24,11 +30,17 @@ export function MappingProvider({ children }: { children: ReactNode }) {
   const [selectedMarketplace, setSelectedMarketplace] = useState<Marketplace | null>(null)
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([])
+  const [currentStep, setCurrentStep] = useState<number>(0)
+  const [stepTitles, setStepTitles] = useState<string[]>([])
+  const [sellerFileId, setSellerFileId] = useState<string>("")
 
   const resetMapping = () => {
     setUploadedFileData(null)
     setSelectedMarketplace(null)
     setColumnMapping({})
+    setCurrentStep(0)
+    setStepTitles([])
+    setSellerFileId("")
   }
 
   return (
@@ -42,6 +54,12 @@ export function MappingProvider({ children }: { children: ReactNode }) {
         setColumnMapping,
         marketplaces,
         setMarketplaces,
+        currentStep,
+        setCurrentStep,
+        stepTitles,
+        setStepTitles,
+        sellerFileId,
+        setSellerFileId,
         resetMapping,
       }}
     >
