@@ -12,7 +12,6 @@ export default function MappingListPage() {
   };
   return (
     <div className="bg-background">
-      <div className="container">
         {showSuccess ? (
           <MappingExistingSuccesScreen />
         ) : (
@@ -21,7 +20,6 @@ export default function MappingListPage() {
             onCancel={() => router.back()}
           />
         )}
-      </div>
     </div>
   );
 }

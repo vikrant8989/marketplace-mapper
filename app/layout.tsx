@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <ToastProvider>
           <Header />
-          <ScrollArea className="h-[600px]">{children}</ScrollArea>
+          <ScrollArea className="h-[calc(100vh-70px)]">{children}</ScrollArea>
         </ToastProvider>
       </body>
     </html>

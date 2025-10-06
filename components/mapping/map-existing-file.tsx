@@ -66,7 +66,6 @@ export default function MapExistingFile({
       setSellerFiles(Array.isArray(files) ? files : []);
       setTemplates(Array.isArray(templates) ? templates : []);
     } catch (error) {
-      console.error("[v0] Error fetching data:", error);
       setSellerFiles([]);
       setTemplates([]);
       const message =
@@ -121,7 +120,7 @@ export default function MapExistingFile({
       showToast("Mapping saved successfully!", "success");
     } catch (error) {
       const message =
-        error instanceof ApiError ? error.message : ERROR_MESSAGES.SAVE_ERROR;
+      error instanceof ApiError ? error.message : ERROR_MESSAGES.SAVE_ERROR;
       showToast(`Failed to save mapping: ${message}`, "error");
     } finally {
       setIsSaving(false);

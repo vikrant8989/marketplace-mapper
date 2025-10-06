@@ -4,9 +4,7 @@ export default function MappingListPage() {
 
   return (
       <div className="bg-background">
-        <div className="container">
           <MappingsPage/>
-        </div>
       </div>
   );
 }

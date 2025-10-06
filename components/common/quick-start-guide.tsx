@@ -1,11 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-const flows : any = {
-    getStarted: [
+interface Step {
+  number: number
+  title: string
+  description: string
+  cta: string
+}
+
+interface Flows {
+  getStarted: Step[]
+  separate: Step[]
+}
+
+type FlowType = keyof Flows
+
+const flows: Flows = {
+  getStarted: [
     {
       number: 1,
       title: "Select a Marketplace",
@@ -34,7 +47,7 @@ const flows : any = {
   separate: [
     {
       number: 1,
-      title: "Create a Marketplace Template By click on marketplacs",
+      title: "Create a Marketplace Template By click on marketplaces",
       description: "Define the required columns and formats for a marketplace in your file before uploading marketplace data.",
       cta: "Create Template",
     },
@@ -57,14 +70,13 @@ const flows : any = {
       cta: "View Mappings",
     },
   ]
-
 }
 
 export function QuickStartGuide() {
-  const [activeFlow, setActiveFlow] = useState("getStarted")
+  const [activeFlow, setActiveFlow] = useState<FlowType>("getStarted")
 
   return (
-    <section aria-labelledby="quick-start" className="container mx-auto px-4 pb-16">
+    <section aria-labelledby="quick-start" className="w-full px-4 pb-16">
       <div className="mx-auto max-w-4xl">
         <h2 id="quick-start" className="text-2xl font-semibold mb-4">
           Quick Start Guide
@@ -74,36 +86,45 @@ export function QuickStartGuide() {
         </p>
 
         {/* Flow Selector */}
-        <div className="mb-8 flex gap-4">
+        <div className="mb-8 flex flex-wrap gap-4">
           <Button
             size="sm"
-            className={activeFlow === "getStarted" ? "cursor-pointer bg-blue-600 hover:bg-blue-700" : " cursor-pointer bg-gray-300 hover:bg-gray-400 text-black"}
+            variant={activeFlow === "getStarted" ? "default" : "secondary"}
+            className={
+              activeFlow === "getStarted" 
+                ? "bg-blue-600 hover:bg-blue-700" 
+                : "bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100"
+            }
             onClick={() => setActiveFlow("getStarted")}
           >
             Get Started Flow
           </Button>
           <Button
             size="sm"
-            className={activeFlow === "separate" ? "cursor-pointer bg-blue-600 hover:bg-blue-700" : " cursor-pointer bg-gray-300 hover:bg-gray-400 text-black"}
+            variant={activeFlow === "separate" ? "default" : "secondary"}
+            className={
+              activeFlow === "separate" 
+                ? "bg-blue-600 hover:bg-blue-700" 
+                : "bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100"
+            }
             onClick={() => setActiveFlow("separate")}
           >
             Separate Flow
           </Button>
-
         </div>
 
         <ol className="space-y-4">
-          {flows[activeFlow].map((step : any) => (
-            <li key={step.number} className="flex items-start gap-4 rounded-lg border bg-card p-4">
+          {flows[activeFlow].map((step) => (
+            <li key={step.number} className="flex items-start gap-4 rounded-lg border bg-card p-4 transition-all hover:shadow-md">
               <div
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-primary bg-primary/10 text-sm font-semibold text-primary flex-shrink-0"
               >
                 {step.number}
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-medium">{step.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-medium mb-1">{step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.description}</p>
               </div>
             </li>
           ))}

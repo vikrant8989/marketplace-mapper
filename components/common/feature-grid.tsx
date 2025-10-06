@@ -45,7 +45,7 @@ export function FeatureGrid() {
   };
 
   return (
-    <div className="container mt-10 mb-24 flex justify-center px-4">
+    <div className="mt-10 mb-24 flex justify-center w-full">
       <Card className="shadow-lg">
         <CardContent className="p-8">
           <div className="grid md:grid-cols-2 gap-6">

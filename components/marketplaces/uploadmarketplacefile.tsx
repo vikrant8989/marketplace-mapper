@@ -107,17 +107,13 @@ export default function UploadMarketplaceFile() {
       console.log(`${selectedMarketplace} template created successfully!`)
       setMarketplaceId(marketplace.id)
     } catch (error: unknown) {
+      console.error("Error saving marketplace template:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save marketplace template"
 
       setUploadedFileData(null)
       setIsTemplateValid(false)
 
-      toast(
-        errorMessage.includes("already exists")
-          ? `Template not saved: ${selectedMarketplace} template already exists. Use a different name or delete the existing one.`
-          : `Template not saved: ${errorMessage}`,
-        "error",
-      )
+      toast(`Template not saved: ${errorMessage}`, "error")
     } finally {
       setIsLoading(false)
     }
