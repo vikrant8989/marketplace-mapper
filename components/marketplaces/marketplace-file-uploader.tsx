@@ -6,16 +6,19 @@ import { Upload, FileText, X, Download } from "lucide-react"
 import type { MarketplaceAttribute } from "@/lib/types"
 import { parseMarketplaceTemplate, validateFile, formatFileSize } from "@/lib/utils/csv-parser"
 import { ERROR_MESSAGES } from "@/lib/constants"
+import { useToast } from "../toast-1"
 
 interface FileUploaderProps {
   onFileUpload: (file: File, attributes: MarketplaceAttribute[]) => void
+  onValidationChange?: (valid: boolean) => void
 }
 
-const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
+const FileUploader = ({ onFileUpload, onValidationChange }: FileUploaderProps) => {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const { showToast: toast } = useToast()
 
   const handleFileSelect = async (files: FileList) => {
     if (files.length > 0) {
@@ -23,7 +26,8 @@ const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
 
       const validation = validateFile(file)
       if (!validation.valid) {
-        alert(validation.error)
+        onValidationChange?.(false)
+        toast(validation.error || "Invalid file", "error")
         return
       }
 
@@ -33,10 +37,12 @@ const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
         const attributes = await parseMarketplaceTemplate(file)
 
         setUploadedFile(file)
+        onValidationChange?.(true)
         onFileUpload(file, attributes)
       } catch (error) {
         console.error("Error parsing CSV:", error)
-        alert(error instanceof Error ? error.message : ERROR_MESSAGES.PARSE_ERROR)
+        onValidationChange?.(false)
+        toast(error instanceof Error ? error.message : ERROR_MESSAGES.PARSE_ERROR, "error")
       } finally {
         setIsProcessing(false)
       }
@@ -64,6 +70,7 @@ const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
 
   const removeFile = () => {
     setUploadedFile(null)
+    onValidationChange?.(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -121,7 +128,7 @@ const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing}
-                className="cursor-pointer px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white 
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white 
                 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 
                 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 
                 disabled:cursor-not-allowed"

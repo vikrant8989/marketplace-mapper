@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import FileUploader from "./marketplace-file-uploader"
 import { marketplaceAPI } from "@/lib/api/client"
-import { MarketplaceAttribute } from "@/lib/types"
+import type { MarketplaceAttribute } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useToast } from "../toast-1"
 
@@ -44,8 +44,9 @@ export default function UploadMarketplaceFile() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [newMarketplaceName, setNewMarketplaceName] = useState("")
   const [newMarketplaceDesc, setNewMarketplaceDesc] = useState("")
-  const { showToast } = useToast();
   const router = useRouter()
+  const [isTemplateValid, setIsTemplateValid] = useState(false)
+  const { showToast: toast } = useToast()
 
   useEffect(() => {
     fetchMarketplaces()
@@ -57,7 +58,8 @@ export default function UploadMarketplaceFile() {
       const response = await marketplaceAPI.getAll()
       setMarketplaces(response)
     } catch (error) {
-      showToast(`Failed to load marketplaces`, "error");
+      console.error("Failed to fetch marketplaces:", error)
+      toast("Failed to load marketplaces, Please try again in a moment.", "error")
     } finally {
       setIsLoadingMarketplaces(false)
     }
@@ -65,11 +67,15 @@ export default function UploadMarketplaceFile() {
 
   const handleMarketplaceSelect = (marketplaceName: string) => {
     setSelectedMarketplace(marketplaceName)
+    setUploadedFileData(null)
+    setMarketplaceId(null)
+    setIsTemplateValid(false)
+    setIsCompleted(false)
   }
 
   const handleAddNewMarketplace = () => {
     if (!newMarketplaceName.trim()) {
-      showToast(`Please enter a marketplace name`, "warning");
+      toast("Marketplace name required. Please enter a marketplace name.", "error")
       return
     }
 
@@ -88,6 +94,7 @@ export default function UploadMarketplaceFile() {
 
   const handleFileUpload = async (file: File, attributes: MarketplaceAttribute[]) => {
     setUploadedFileData({ file, columns: attributes })
+    setIsTemplateValid(true)
 
     try {
       setIsLoading(true)
@@ -102,13 +109,15 @@ export default function UploadMarketplaceFile() {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save marketplace template"
 
-      if (errorMessage.includes("already exists")) {
-        showToast(`${selectedMarketplace} template already exists. Please use a different name or delete the existing one.`, "error");
-      } else {
-        showToast(`${errorMessage}`, "error");
-
-      }
       setUploadedFileData(null)
+      setIsTemplateValid(false)
+
+      toast(
+        errorMessage.includes("already exists")
+          ? `Template not saved: ${selectedMarketplace} template already exists. Use a different name or delete the existing one.`
+          : `Template not saved: ${errorMessage}`,
+        "error",
+      )
     } finally {
       setIsLoading(false)
     }
@@ -136,7 +145,7 @@ export default function UploadMarketplaceFile() {
             <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Choose Your Marketplace</h3>
             <p className="text-gray-600 dark:text-gray-400">Select the platform template you want to create</p>
           </div>
-          
+
           {isLoadingMarketplaces ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -165,7 +174,7 @@ export default function UploadMarketplaceFile() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">{marketplace.description}</p>
                 </button>
               ))}
-              
+
               <button
                 onClick={() => setShowAddDialog(true)}
                 className="cursor-pointer p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 flex flex-col items-center justify-center gap-3 min-h-[120px]"
@@ -180,6 +189,14 @@ export default function UploadMarketplaceFile() {
               </button>
             </div>
           )}
+          <div className="mt-8 flex justify-end">
+            <Steps.NextTrigger
+              disabled={!selectedMarketplace || isLoading}
+              className="cursor-pointer px-6 py-3 text-sm font-semibold text-white bg-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </Steps.NextTrigger>
+          </div>
         </div>
       ),
     },
@@ -193,7 +210,29 @@ export default function UploadMarketplaceFile() {
               Upload {selectedMarketplace} Template
             </h3>
           </div>
-          <FileUploader onFileUpload={handleFileUpload} />
+          <FileUploader onFileUpload={handleFileUpload} onValidationChange={setIsTemplateValid} />
+          <div className="mt-8 flex justify-between items-center">
+            <Steps.PrevTrigger className="cursor-pointer px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors">
+              Previous
+            </Steps.PrevTrigger>
+            <Steps.NextTrigger
+              disabled={isLoading || !uploadedFileData || !marketplaceId || !isTemplateValid}
+              onClick={(e) => {
+                if (isLoading || !uploadedFileData || !marketplaceId || !isTemplateValid) {
+                  e.preventDefault()
+                  toast(
+                    "Cannot continue, Please upload a valid CSV and ensure the template is saved before proceeding.",
+                    "error",
+                  )
+                  return
+                }
+                setIsCompleted(true)
+              }}
+              className="cursor-pointer px-6 py-3 text-sm font-semibold text-white bg-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? "Saving Template..." : "Next"}
+            </Steps.NextTrigger>
+          </div>
         </div>
       ),
     },
@@ -267,7 +306,7 @@ export default function UploadMarketplaceFile() {
                 </div>
                 <div className="flex gap-3 mt-4">
                   <Button
-                    className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
+                    className="bg-blue-500 hover:bg-blue-700 text-white cursor-pointer"
                     onClick={() => {
                       router.push("/seller")
                     }}
@@ -278,25 +317,6 @@ export default function UploadMarketplaceFile() {
               </div>
             </Steps.CompletedContent>
           </div>
-
-          {!isCompleted && (
-            <div className="flex justify-between items-center">
-              <Steps.PrevTrigger className="cursor-pointer px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors">
-                Previous
-              </Steps.PrevTrigger>
-              <Steps.NextTrigger
-                disabled={isLoading || !selectedMarketplace || (!!uploadedFileData && !marketplaceId)}
-                onClick={() => {
-                  if (uploadedFileData && marketplaceId) {
-                    setIsCompleted(true)
-                  }
-                }}
-                className="cursor-pointer px-6 py-3 text-sm font-semibold text-white bg-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? "Saving Template..." : "Next"}
-              </Steps.NextTrigger>
-            </div>
-          )}
         </Steps.Root>
       </div>
 
@@ -304,9 +324,7 @@ export default function UploadMarketplaceFile() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Marketplace</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter the details for your custom marketplace template.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Enter the details for your custom marketplace template.</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -329,10 +347,13 @@ export default function UploadMarketplaceFile() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" onClick={() => {
-              setNewMarketplaceName("")
-              setNewMarketplaceDesc("")
-            }}>
+            <AlertDialogCancel
+              className="cursor-pointer"
+              onClick={() => {
+                setNewMarketplaceName("")
+                setNewMarketplaceDesc("")
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction className="cursor-pointer" onClick={handleAddNewMarketplace}>
